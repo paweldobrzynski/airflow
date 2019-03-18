@@ -50,8 +50,10 @@ from airflow.exceptions import AirflowException
 from airflow.executors import SequentialExecutor
 from airflow.hooks.base_hook import BaseHook
 from airflow.hooks.sqlite_hook import SqliteHook
-from airflow.models import BaseOperator, Connection, TaskFail
 from airflow.models import (
+    BaseOperator,
+    Connection,
+    TaskFail,
     DagBag,
     DagRun,
     Pool,
