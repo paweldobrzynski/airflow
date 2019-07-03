@@ -43,7 +43,7 @@ LAST_STEP_NAME=""
 STEP_STARTED="false"
 PYTHON_VERSION_FOR_DEFAULT_IMAGE=3.6
 AIRFLOW_CI_VERBOSE=${AIRFLOW_CI_VERBOSE:="false"}
-BUILD_MONTH=$(date +"%Y%m")
+AIRFLOW_CI_BUILD_EPOCH=${AIRFLOW_CI_BUILD_EPOCH:=$(date +"%Y%m")}
 
 function end_step {
     if [[ "${STEP_STARTED}" != "true" ]]; then
@@ -105,7 +105,8 @@ function build_image {
         --build-arg AIRFLOW_EXTRAS="${AIRFLOW_EXTRAS}" \
         --build-arg AIRFLOW_USER="${AIRFLOW_USER}" \
         --build-arg BUILD_NPM="${AIRFLOW_CONTAINER_BUILD_NPM}" \
-        --build-arg BUILD_MONTH="${BUILD_MONTH}" \
+        --build-arg AIRFLOW_CI_BUILD_EPOCH="${AIRFLOW_CI_BUILD_EPOCH}" \
+        --build-arg AIRFLOW_CONTAINER_CI_OPTIMISED_BUILD="${AIRFLOW_CONTAINER_CI_OPTIMISED_BUILD}" \
         --build-arg HOME="${HOME}" \
         "${DOCKER_CACHE_DIRECTIVE[@]}" \
         -t "${MY_IMAGE_TAG}" \
@@ -207,6 +208,8 @@ if [[ "${CI}" == "true" ]]; then
 else
     NON_CI="true"
 fi
+
+AIRFLOW_CONTAINER_CI_OPTIMISED_BUILD="${CI}"
 
 # Extras used to to build slim airflow image
 AIRFLOW_SLIM_EXTRAS=${AIRFLOW_SLIM_EXTRAS:="all"}

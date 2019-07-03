@@ -20,7 +20,7 @@ set -xeuo pipefail
 
 MY_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-pushd ${MY_DIR}/../../ || exit 1
+pushd "${MY_DIR}/../../" || exit 1
 
 docker run -v "$(pwd)/Dockerfile:/root/Dockerfile" -v "$(pwd)/.hadolint.yaml:/root/.hadolint.yaml" \
     -w /root hadolint/hadolint /bin/hadolint Dockerfile

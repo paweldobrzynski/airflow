@@ -20,13 +20,15 @@ set -euo pipefail
 
 MY_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-pushd ${MY_DIR}/../../ || exit 1
+pushd "${MY_DIR}/../../" || exit 1
 
 export AIRFLOW_CONTAINER_SKIP_SLIM_CI_IMAGE="false"
 export AIRFLOW_CONTAINER_SKIP_CI_IMAGE="true"
 export AIRFLOW_CONTAINER_PUSH_IMAGES="false"
 export AIRFLOW_CONTAINER_BUILD_NPM="false"
+exoirt AIRFLOW_CONTAINER_CI_OPTIMISED_BUILD="true"
 
+# shellcheck source=../../hooks/build
 . ./hooks/build
 
 set -x

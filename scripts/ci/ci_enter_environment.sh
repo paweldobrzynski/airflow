@@ -45,15 +45,15 @@ export BRANCH_NAME=${BRANCH_NAME:="master"}
 
 export DOCKER_IMAGE=${DOCKERHUB_USER}/${DOCKERHUB_REPO}:${BRANCH_NAME}-python${PYTHON_VERSION}-ci
 
-set +u
 if [[ "${ENV}" == "docker" ]]; then
   docker-compose --log-level INFO \
       -f "${MY_DIR}/docker-compose.yml" \
       -f "${MY_DIR}/docker-compose-${BACKEND}.yml" \
         run airflow-testing /opt/airflow/scripts/ci/in_container/entrypoint_ci.sh;
 else
-  "${MY_DIR}/kubernetes/minikube/stop_minikube.sh" && "${MY_DIR}/kubernetes/setup_kubernetes.sh" && \
-    "${MY_DIR}/kubernetes/kube/deploy.sh" -d persistent_mode
+  "${MY_DIR}/kubernetes/minikube/stop_minikube.sh"
+  "${MY_DIR}/kubernetes/setup_kubernetes.sh" &&
+  "${MY_DIR}/kubernetes/kube/deploy.sh" -d persistent_mode &&
   MINIKUBE_IP=$(minikube ip)
   export MINIKUBE_IP
   docker-compose --log-level ERROR \
@@ -63,8 +63,9 @@ else
          run --no-deps airflow-testing /opt/airflow/scripts/ci/in_container/entrypoint_ci.sh;
   "${MY_DIR}/kubernetes/minikube/stop_minikube.sh"
 
-  "${MY_DIR}/kubernetes/minikube/stop_minikube.sh" && "${MY_DIR}/kubernetes/setup_kubernetes.sh" && \
-    "${MY_DIR}/kubernetes/kube/deploy.sh" -d git_mode
+  "${MY_DIR}/kubernetes/minikube/stop_minikube.sh"
+  "${MY_DIR}/kubernetes/setup_kubernetes.sh" &&
+  "${MY_DIR}/kubernetes/kube/deploy.sh" -d git_mode &&
   MINIKUBE_IP=$(minikube ip)
   export MINIKUBE_IP
   docker-compose --log-level ERROR \
@@ -75,4 +76,3 @@ else
   "${MY_DIR}/kubernetes/minikube/stop_minikube.sh"
 
 fi
-set -u

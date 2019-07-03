@@ -26,9 +26,9 @@ if [[ ${AIRFLOW_CI_VERBOSE:="false"} == "true" ]]; then
 fi
 
 # shellcheck source=./_check_in_container.sh
-. ${MY_DIR}/_check_in_container.sh
+. "${MY_DIR}/_check_in_container.sh"
 
-AIRFLOW_ROOT="${MY_DIR}/../.."
+AIRFLOW_ROOT="${MY_DIR}/../../.."
 
 PYTHON_VERSION=${PYTHON_VERSION:=3.6}
 ENV=${ENV:=docker}
@@ -81,8 +81,6 @@ if [[ ${AIRFLOW_CI_VERBOSE} == "true" ]]; then
     echo
 fi
 
-AIRFLOW_ROOT="$(cd ${MY_DIR}; cd ../../..; pwd)"
-
 export AIRFLOW__CORE__DAGS_FOLDER="${AIRFLOW_SOURCES}/tests/dags"
 
 # add test/test_utils to PYTHONPATH (TODO: Do we need it?)
@@ -106,12 +104,12 @@ echo "#######################################################################"
 # TODO: Check this - this should be made travis-independent
 if [[ ! -h /home/travis/build/apache/airflow ]]; then
   sudo mkdir -p /home/travis/build/apache
-  sudo ln -s ${AIRFLOW_ROOT} /home/travis/build/apache/airflow
+  sudo ln -s "${AIRFLOW_ROOT}" /home/travis/build/apache/airflow
 fi
 
 # Fix file permissions
-if [[ -d $HOME/.minikube ]]; then
-    sudo chown -R airflow.airflow $HOME/.kube $HOME/.minikube
+if [[ -d "${HOME}/.minikube" ]]; then
+    sudo chown -R airflow.airflow "${HOME}/.kube" "${HOME}/.minikube"
 fi
 
 # Cleanup the logs when entering the environment
@@ -119,10 +117,11 @@ sudo rm -rf ${AIRFLOW_HOME}/logs/*
 
 if [[ "${ENV}" == "docker" ]]; then
     # Start MiniCluster
-    java -cp "/tmp/minicluster-1.1-SNAPSHOT/*" com.ing.minicluster.MiniCluster >/dev/null 2>&1 &
+    java -cp /tmp/minicluster-1.1-SNAPSHOT/* com.ing.minicluster.MiniCluster >/dev/null 2>&1 &
 
     # Set up ssh keys
     echo 'yes' | ssh-keygen -t rsa -C your_email@youremail.com -P '' -f ~/.ssh/id_rsa >/dev/null 2>&1
+    cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
     cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
     ln -s -f ~/.ssh/authorized_keys ~/.ssh/authorized_keys2
     chmod 600 ~/.ssh/*
@@ -132,7 +131,7 @@ if [[ "${ENV}" == "docker" ]]; then
 
     # Setting up kerberos
 
-    FQDN=`hostname`
+    FQDN=$(hostname)
     ADMIN="admin"
     PASS="airflow"
     KRB5_KTNAME=/etc/airflow.keytab
@@ -147,32 +146,32 @@ if [[ "${ENV}" == "docker" ]]; then
         echo
     fi
 
-    sudo cp ${MY_DIR}/krb5/krb5.conf /etc/krb5.conf
+    sudo cp "${MY_DIR}/krb5/krb5.conf" /etc/krb5.conf
 
     echo -e "${PASS}\n${PASS}" | \
-        sudo kadmin -p ${ADMIN}/admin -w ${PASS} -q "addprinc -randkey airflow/${FQDN}" >/dev/null 2>&1
-    sudo kadmin -p ${ADMIN}/admin -w ${PASS} -q "ktadd -k ${KRB5_KTNAME} airflow" >/dev/null 2>&1
-    sudo kadmin -p ${ADMIN}/admin -w ${PASS} -q "ktadd -k ${KRB5_KTNAME} airflow/${FQDN}" >/dev/null 2>&1
-    sudo chmod 0644 ${KRB5_KTNAME}
+        sudo kadmin -p "${ADMIN}/admin" -w "${PASS}" -q "addprinc -randkey airflow/${FQDN}" >/dev/null 2>&1
+    sudo kadmin -p "${ADMIN}/admin" -w "${PASS}" -q "ktadd -k ${KRB5_KTNAME} airflow" >/dev/null 2>&1
+    sudo kadmin -p "${ADMIN}/admin" -w "${PASS}" -q "ktadd -k ${KRB5_KTNAME} airflow/${FQDN}" >/dev/null 2>&1
+    sudo chmod 0644 "${KRB5_KTNAME}"
 fi
 
 # Exporting XUNIT_FILE so that we can see summary of failed tests
 # at the end of the log
-export XUNIT_FILE=${AIRFLOW_HOME}/logs/all_tests.xml
-mkdir -pv ${AIRFLOW_HOME}/logs/
+export XUNIT_FILE="${AIRFLOW_HOME}/logs/all_tests.xml"
+mkdir -pv "${AIRFLOW_HOME}/logs/"
 
-cp -f ${MY_DIR}/airflow_ci.cfg ${AIRFLOW_HOME}/unittests.cfg
+cp -f "${MY_DIR}/airflow_ci.cfg" "${AIRFLOW_HOME}/unittests.cfg"
 
 # If we do not want to run tests, we simply drop into bash
 if [[ "${RUN_TESTS}" == "false" ]]; then
     if [[ ${#ARGS} == 0 ]]; then
         exec /bin/bash
     else
-        exec /bin/bash -c "${ARGS[*]}"
+        exec /bin/bash -c "$(printf "%q " "${ARGS[@]}")"
     fi
 fi
 
-if [[ -z "${ARGS[*]}" ]]; then
+if [[ ${#ARGS} == 0 ]]; then
     ARGS=("--with-coverage"
           "--cover-erase"
           "--cover-html"
@@ -196,12 +195,12 @@ fi
 
 KUBERNETES_VERSION=${KUBERNETES_VERSION:=""}
 
-if [[ "${KUBERNETES_VERSION}" == "" ]]; then
+if [[ -z "${KUBERNETES_VERSION}" ]]; then
     echo
     echo "Running CI tests with ${ARGS[*]}"
     echo
-    ${MY_DIR}/run_ci_tests.sh "${ARGS[*]}"
-    codecov -e py${PYTHON_VERSION}-backend_${BACKEND}-env_${ENV}
+    "${MY_DIR}/run_ci_tests.sh" "${ARGS[@]}"
+    codecov -e "py${PYTHON_VERSION}-backend_${BACKEND}-env_${ENV}"
 else
     export KUBERNETES_VERSION
     export MINIKUBE_IP
@@ -215,6 +214,6 @@ else
     echo
     echo "Running CI tests with ${ARGS[*]}"
     echo
-    ${MY_DIR}/run_ci_tests.sh tests.minikube "${ARGS[*]}"
-    codecov -e py${PYTHON_VERSION}-backend_${BACKEND}-env_${ENV}
+    "${MY_DIR}/run_ci_tests.sh" tests.minikube "${ARGS[@]}"
+    codecov -e "py${PYTHON_VERSION}-backend_${BACKEND}-env_${ENV}"
 fi

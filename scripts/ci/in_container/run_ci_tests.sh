@@ -28,7 +28,7 @@ if [[ ${AIRFLOW_CI_VERBOSE:="false"} == "true" ]]; then
 fi
 
 # shellcheck source=./_check_in_container.sh
-. ${MY_DIR}/_check_in_container.sh
+. "${MY_DIR}/_check_in_container.sh"
 
 # any argument received is overriding the default nose execution arguments:
 NOSE_ARGS=( "$@" )
@@ -40,14 +40,14 @@ if [[ "${KUBERNETES_VERSION}" == "" ]]; then
     yes | airflow initdb || true
     airflow resetdb -y
 
-    kinit -kt ${KRB5_KTNAME} airflow
+    kinit -kt "${KRB5_KTNAME}" airflow
 fi
 
 echo
 echo "Starting the tests with those nose arguments: ${NOSE_ARGS[*]}"
 echo
 set +e
-nosetests ${NOSE_ARGS[*]}
+nosetests "${NOSE_ARGS[@]}"
 RES=$?
 
 set +x
@@ -59,7 +59,8 @@ if [[ "${RES}" != "0" ]]; then
         echo
         echo "   Summary of failed tests"
         echo
-        python ${AIRFLOW_SOURCES:=}/tests/test_utils/print_tests.py --xunit-file "${XUNIT_FILE}" --only-failed
+        python "${AIRFLOW_SOURCES:=}/tests/test_utils/print_tests.py" \
+            --xunit-file "${XUNIT_FILE}" --only-failed
         echo
         printf '=%.0s' $(seq "${SEPARATOR_WIDTH}")
     else
@@ -70,4 +71,4 @@ if [[ "${RES}" != "0" ]]; then
 else
     echo "All tests successful"
 fi
-exit ${RES}
+exit "${RES}"

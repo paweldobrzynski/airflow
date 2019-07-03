@@ -20,7 +20,7 @@
 
 set -euo pipefail
 
-MY_DIR="$(cd "`dirname "$0"`"; pwd)"
+MY_DIR="$(cd "$(dirname "$0")" && pwd)"
 pushd "${MY_DIR}" || exit 1
 
 if [[ ${APT_DEPS_IMAGE:=""} != "" ]]; then
@@ -32,7 +32,7 @@ if [[ ${APT_DEPS_IMAGE:=""} != "" ]]; then
 fi
 
 echo "Removing content of the  _build folder"
-rm -rf "_build/*"
+rm -rf _build/*
 echo "Removed content of the _build folder"
 
 mkdir -pv _build

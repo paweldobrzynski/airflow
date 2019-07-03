@@ -42,7 +42,7 @@ echo "Local OS is ${_MY_OS}"
 export MINIKUBE_WANTREPORTERRORPROMPT=false
 export CHANGE_MINIKUBE_NONE_USER=true
 
-cd ${_MY_DIR}
+cd "${_MY_DIR}"
 
 source _k8s.sh
 
@@ -63,7 +63,7 @@ fi
 if [[ ! -x /usr/local/bin/minikube ]]; then
   echo Downloading minikube.
   curl -Lo bin/minikube  \
-    https://storage.googleapis.com/minikube/releases/${_MINIKUBE_VERSION}/minikube-${_MY_OS}-amd64
+    "https://storage.googleapis.com/minikube/releases/${_MINIKUBE_VERSION}/minikube-${_MY_OS}-amd64"
   chmod +x bin/minikube
   sudo mv bin/minikube /usr/local/bin/minikube
 fi
@@ -71,7 +71,6 @@ fi
 export PATH="${_MY_DIR}/bin:$PATH"
 
 if [[ "${USE_MINIKUBE_DRIVER_NONE:-}" = "true" ]]; then
-  # TODO: Change this it should be Travis-independent
   # Run minikube with none driver.
   # See https://blog.travis-ci.com/2017-10-26-running-kubernetes-on-travis-ci-with-minikube
   _VM_DRIVER=none
@@ -108,7 +107,7 @@ ${_MINIKUBE} start --kubernetes-version=${_KUBERNETES_VERSION} --vm-driver=${_VM
 ${_MINIKUBE} update-context
 # TODO: Check This - it should be travis-independent
 if [[ "${TRAVIS}" == true ]]; then
-  sudo chown -R travis.travis $HOME/.kube $HOME/.minikube
+  sudo chown -R travis.travis "${HOME}/.kube" "${HOME}/.minikube"
 fi
 
 # Wait for Kubernetes to be up and ready.
@@ -124,9 +123,9 @@ kubectl get -n kube-system pods
   (_ADDON=$(kubectl get pod -n kube-system -l component=kube-addon-manager \
       --no-headers -o name| cut -d/ -f2);
    echo Addon-manager describe:;
-   kubectl describe pod -n kube-system ${_ADDON};
+   kubectl describe pod -n kube-system "${_ADDON}";
    echo Addon-manager log:;
-   kubectl logs -n kube-system ${_ADDON};
+   kubectl logs -n kube-system "${_ADDON}";
    exit 1)
 k8s_single_pod_ready -n kube-system -l k8s-app=kube-dns
 k8s_single_pod_ready -n kube-system storage-provisioner

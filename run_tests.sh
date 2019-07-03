@@ -23,7 +23,7 @@ set -euo pipefail
 
 CMDNAME="$(basename -- "$0")"
 
-AIRFLOW_ROOT="$(cd ${MY_DIR}; pwd)"
+AIRFLOW_ROOT="$(cd "${MY_DIR}" && pwd)"
 export AIRFLOW__CORE__DAGS_FOLDER="S{AIRFLOW_ROOT}/tests/dags"
 
 # add test/contrib to PYTHONPATH
@@ -32,7 +32,7 @@ export PYTHONPATH=${PYTHONPATH:-${AIRFLOW_ROOT}/tests/test_utils}
 # environment
 export AIRFLOW_HOME=${AIRFLOW_HOME:=${HOME}}
 
-echo Airflow home: ${AIRFLOW_HOME}
+echo "Airflow home: ${AIRFLOW_HOME}"
 
 export AIRFLOW__CORE__UNIT_TEST_MODE=True
 
@@ -60,16 +60,13 @@ Flags:
 echo
 
 ####################  Parsing options/arguments
-PARAMS=$(getopt \
-    -o "${_RUN_TESTS_GETOPT_SHORT_OPTIONS:=}" \
-    -l "${_RUN_TESTS_GETOPT_LONG_OPTIONS:=}" \
-    --name "$CMDNAME" -- "$@")
-
-if [[ $? -ne 0 ]]
+if ! PARAMS=$(getopt \
+    -o "h s" \
+    -l "help skip-db-init" \
+    --name "${CMDNAME}" -- "$@")
 then
     usage
 fi
-
 
 eval set -- "${PARAMS}"
 unset PARAMS
@@ -101,9 +98,9 @@ do
   esac
 done
 
-
+set +u
 # any argument received after -- is overriding the default nose execution arguments:
-NOSE_ARGS=$@
+NOSE_ARGS=("$@")
 
 if [[ "${SKIP_DB_INIT}" == "true" ]]; then
     echo
@@ -115,19 +112,27 @@ else
     airflow resetdb -y
 fi
 
-kinit -kt ${KRB5_KTNAME} airflow
+kinit -kt "${KRB5_KTNAME}" airflow
 
-if [[ -z "${NOSE_ARGS}" ]]; then
-  NOSE_ARGS="--with-coverage \
-  --cover-erase \
-  --cover-html \
-  --cover-package=airflow \
-  --cover-html-dir=airflow/www/static/coverage \
-  --with-ignore-docstrings \
-  --rednose \
-  --with-timer \
-  -v \
-  --logging-level=DEBUG"
+if [[ ${#NOSE_ARGS} == 0 ]]; then
+    NOSE_ARGS=("--with-coverage" \
+             "--cover-erase" \
+             "--cover-html" \
+             "--cover-package=airflow" \
+             "--cover-html-dir=airflow/www/static/coverage" \
+             "--with-ignore-docstrings" \
+             "--rednose" \
+             "--with-timer" \
+             "-v" \
+             "--logging-level=DEBUG" \
+    )
+    echo
+    echo "Running ALL Tests"
+    echo
+else
+    echo
+    echo "Running tests with ${ARGS[*]}"
+    echo
 fi
 
 # For impersonation tests running on SQLite on Travis, make the database world readable so other
@@ -139,5 +144,6 @@ if [[ -f "${AIRFLOW_DB}" ]]; then
   chmod g+rwx "${AIRFLOW_HOME}"
 fi
 
-echo "Starting the tests with the following nose arguments: ${NOSE_ARGS}"
-nosetests ${NOSE_ARGS}
+echo "Starting the tests with the following nose arguments: ${NOSE_ARGS[*]}"
+nosetests "${NOSE_ARGS[@]}"
+set -u

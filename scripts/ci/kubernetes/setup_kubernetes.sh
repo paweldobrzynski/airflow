@@ -23,7 +23,7 @@ echo "This script downloads minikube, starts a driver=None minikube cluster, bui
 echo "For development, start minikube yourself (ie: minikube start) then run this script as you probably\
  do not want a driver=None minikube cluster"
 
-DIRNAME=$(cd "$(dirname "$0")"; pwd)
+DIRNAME=$(cd "$(dirname "$0")" && pwd)
 
 # Fix file permissions
 # TODO: change this - it should be Travis independent
@@ -31,8 +31,8 @@ if [[ "${TRAVIS}" == true ]]; then
   sudo chown -R travis.travis .
 fi
 
-${DIRNAME}/minikube/start_minikube.sh
-${DIRNAME}/docker/build.sh
+"${DIRNAME}/minikube/start_minikube.sh"
+"${DIRNAME}/docker/build.sh"
 
 
 echo "Airflow environment on kubernetes is good to go!"
