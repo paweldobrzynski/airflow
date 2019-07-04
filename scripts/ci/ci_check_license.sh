@@ -61,7 +61,7 @@ else
 fi
 
 export RAT_VERSION=0.12
-export RAT_JAR="${TMP_DIR}"/lib/apache-rat-${RAT_VERSION}.jar
+export RAT_JAR="${TMP_DIR}/lib/apache-rat-${RAT_VERSION}.jar"
 mkdir -p "${TMP_DIR}/lib"
 
 
@@ -77,7 +77,7 @@ mkdir -p docs/_build/html/
 echo "Running license checks. This can take a while."
 
 
-if ${JAVA_CMD} -jar "${RAT_JAR}" -E "${AIRFLOW_ROOT}"/.rat-excludes \
+if ! ${JAVA_CMD} -jar "${RAT_JAR}" -E "${AIRFLOW_ROOT}"/.rat-excludes \
     -d "${AIRFLOW_ROOT}" > rat-results.txt; then
    echo >&2 "RAT exited abnormally"
    exit 1

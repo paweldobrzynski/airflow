@@ -62,9 +62,9 @@ RES_TESTS=$?
 popd || exit 1
 
 if [[ "${RES_TESTS}" != 0 || "${RES_MAIN}" != 0 ]]; then
-    echo
-    echo "There were some pylint errors. Exiting"
-    echo
+    echo >&2
+    echo >&2 "There were some pylint errors. Exiting"
+    echo >&2
     exit 1
 else
     echo

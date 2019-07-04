@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+
 #
 #  Licensed to the Apache Software Foundation (ASF) under one
 #  or more contributor license agreements.  See the NOTICE file
@@ -17,10 +18,21 @@
 #  specific language governing permissions and limitations
 #  under the License.
 
-if [[ ${APT_DEPS_IMAGE:=""} == "" ]]; then
-    echo >&2 "You are not inside the Airflow docker container!"
-    echo >&2 "You should only run this script in the Airflow docker container as it may override your files."
-    echo >&2 "Learn more about how we develop and test airflow in:"
-    echo >&2 "https://github.com/apache/airflow/blob/master/CONTRIBUTING.md#setting-up-a-development-environment"
-    exit 1
-fi
+set -xeuo pipefail
+MY_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+export PYTHON_VERSION=${PYTHON_VERSION:="3.6"}
+export DOCKERHUB_USER=${DOCKERHUB_USER:="apache"}
+export DOCKERHUB_REPO=${DOCKERHUB_REPO:="airflow"}
+export WEBSERVER_HOST_PORT=${WEBSERVER_HOST_PORT:="8080"}
+
+export BRANCH_NAME=${BRANCH_NAME:="master"}
+export DOCKER_IMAGE=${DOCKERHUB_USER}/${DOCKERHUB_REPO}:${BRANCH_NAME}-python${PYTHON_VERSION}-ci
+
+docker-compose \
+    -f "${MY_DIR}/docker-compose.yml" \
+    -f "${MY_DIR}/docker-compose-kubernetes.yml" \
+    -f "${MY_DIR}/docker-compose-local.yml" \
+    -f "${MY_DIR}/docker-compose-mysql.yml" \
+    -f "${MY_DIR}/docker-compose-postgres.yml" \
+    -f "${MY_DIR}/docker-compose-sqlite.yml" down

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+
 #
 #  Licensed to the Apache Software Foundation (ASF) under one
 #  or more contributor license agreements.  See the NOTICE file
@@ -17,10 +18,12 @@
 #  specific language governing permissions and limitations
 #  under the License.
 
-if [[ ${APT_DEPS_IMAGE:=""} == "" ]]; then
-    echo >&2 "You are not inside the Airflow docker container!"
-    echo >&2 "You should only run this script in the Airflow docker container as it may override your files."
-    echo >&2 "Learn more about how we develop and test airflow in:"
-    echo >&2 "https://github.com/apache/airflow/blob/master/CONTRIBUTING.md#setting-up-a-development-environment"
-    exit 1
-fi
+set -xeuo pipefail
+MY_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+export RUN_TESTS="true"
+export MOUNT_LOCAL_SOURCES="true"
+export PYTHON_VERSION=${PYTHON_VERSION:="3.6"}
+
+# shellcheck source=./ci_run_airflow_testing.sh
+"${MY_DIR}/ci_run_airflow_testing.sh"

@@ -38,9 +38,9 @@ KUBERNETES_VERSION=${KUBERNETES_VERSION:=""}
 export AIRFLOW_HOME=${AIRFLOW_HOME:=${HOME}}
 
 if [[ -z "${AIRFLOW_SOURCES:=}" ]]; then
-    echo
-    echo AIRFLOW_SOURCES not set !!!!
-    echo
+    echo >&2
+    echo >&2 AIRFLOW_SOURCES not set !!!!
+    echo >&2
     exit 1
 fi
 
@@ -162,6 +162,7 @@ mkdir -pv "${AIRFLOW_HOME}/logs/"
 
 cp -f "${MY_DIR}/airflow_ci.cfg" "${AIRFLOW_HOME}/unittests.cfg"
 
+set +u
 # If we do not want to run tests, we simply drop into bash
 if [[ "${RUN_TESTS}" == "false" ]]; then
     if [[ ${#ARGS} == 0 ]]; then
@@ -192,6 +193,7 @@ else
     echo "Running tests with ${ARGS[*]}"
     echo
 fi
+set -u
 
 KUBERNETES_VERSION=${KUBERNETES_VERSION:=""}
 

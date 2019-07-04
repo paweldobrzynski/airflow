@@ -195,7 +195,7 @@ POD=$(kubectl get pods -o go-template --template '{{range .items}}{{.metadata.na
 if [[ "${PODS_ARE_READY}" == "1" ]]; then
   echo "PODS are ready."
 else
-  echo "PODS are not ready after waiting for a long time. Exiting..."
+  echo >&2 "PODS are not ready after waiting for a long time. Exiting..."
   dump_logs
   exit 1
 fi
@@ -223,7 +223,7 @@ done
 if [[ "${AIRFLOW_WEBSERVER_IS_READY}" == "1" ]]; then
   echo "Airflow webserver is ready."
 else
-  echo "Airflow webserver is not ready after waiting for a long time. Exiting..."
+  echo >&2 "Airflow webserver is not ready after waiting for a long time. Exiting..."
   dump_logs
   exit 1
 fi

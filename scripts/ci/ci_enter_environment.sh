@@ -21,58 +21,7 @@
 set -xeuo pipefail
 MY_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+export RUN_TESTS="false"
 
-export PYTHON_VERSION=${PYTHON_VERSION:=$(python -c 'import sys; print("%s.%s" % (sys.version_info.major, sys.version_info.minor))')}
-AIRFLOW_VERSION=$(cat airflow/version.py - << EOF | python
-print(version.replace("+",""))
-EOF
-)
-export AIRFLOW_VERSION
-
-export DOCKERHUB_USER=${DOCKERHUB_USER:="apache"}
-export DOCKERHUB_REPO=${DOCKERHUB_REPO:="airflow"}
-export AIRFLOW_CI_VERBOSE="true"
-export BACKEND=${BACKEND:="sqlite"}
-export ENV=${ENV:="docker"}
-# Branch name to download image from
-# Can be overridden by SOURCE_BRANCH
-# Define an empty BRANCH_NAME_FIRST
-export BRANCH_NAME=${BRANCH_NAME:=""}
-# in case SOURCE_BRANCH is defined it can override the BRANCH_NAME
-export BRANCH_NAME=${SOURCE_BRANCH:=${BRANCH_NAME}}
-# Default branch name for triggered builds is master
-export BRANCH_NAME=${BRANCH_NAME:="master"}
-
-export DOCKER_IMAGE=${DOCKERHUB_USER}/${DOCKERHUB_REPO}:${BRANCH_NAME}-python${PYTHON_VERSION}-ci
-
-if [[ "${ENV}" == "docker" ]]; then
-  docker-compose --log-level INFO \
-      -f "${MY_DIR}/docker-compose.yml" \
-      -f "${MY_DIR}/docker-compose-${BACKEND}.yml" \
-        run airflow-testing /opt/airflow/scripts/ci/in_container/entrypoint_ci.sh;
-else
-  "${MY_DIR}/kubernetes/minikube/stop_minikube.sh"
-  "${MY_DIR}/kubernetes/setup_kubernetes.sh" &&
-  "${MY_DIR}/kubernetes/kube/deploy.sh" -d persistent_mode &&
-  MINIKUBE_IP=$(minikube ip)
-  export MINIKUBE_IP
-  docker-compose --log-level ERROR \
-      -f "${MY_DIR}/docker-compose.yml" \
-      -f "${MY_DIR}/docker-compose-${BACKEND}.yml" \
-      -f "${MY_DIR}/docker-compose-kubernetes.yml" \
-         run --no-deps airflow-testing /opt/airflow/scripts/ci/in_container/entrypoint_ci.sh;
-  "${MY_DIR}/kubernetes/minikube/stop_minikube.sh"
-
-  "${MY_DIR}/kubernetes/minikube/stop_minikube.sh"
-  "${MY_DIR}/kubernetes/setup_kubernetes.sh" &&
-  "${MY_DIR}/kubernetes/kube/deploy.sh" -d git_mode &&
-  MINIKUBE_IP=$(minikube ip)
-  export MINIKUBE_IP
-  docker-compose --log-level ERROR \
-      -f "${MY_DIR}/docker-compose.yml" \
-      -f "${MY_DIR}/docker-compose-${BACKEND}.yml" \
-      -f "${MY_DIR}/docker-compose-kubernetes.yml" \
-         run --no-deps airflow-testing /opt/airflow/scripts/ci/in_container/entrypoint_ci.sh;
-  "${MY_DIR}/kubernetes/minikube/stop_minikube.sh"
-
-fi
+# shellcheck source=./ci_run_airflow_testing.sh
+"${MY_DIR}/ci_run_airflow_testing.sh"

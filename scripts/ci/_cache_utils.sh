@@ -91,11 +91,8 @@ function check_if_docker_build_is_needed() {
 
     for FILE in ${FILES_FOR_REBUILD_CHECK}
     do
-        check_file_md5sum "${AIRFLOW_SOURCES}/${FILE}"
-        RES=$?
-        if [[ "${RES}" != "0" ]]; then
-            # shellcheck disable=SC2034
-            DOCKER_BUILD_NEEDED="true"
+        if ! check_file_md5sum "${AIRFLOW_SOURCES}/${FILE}"; then
+            export DOCKER_BUILD_NEEDED="true"
         fi
     done
     set -e

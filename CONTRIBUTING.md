@@ -33,6 +33,7 @@ little bit helps, and credit will always be given.
   * [Setting up a development environment](#setting-up-a-development-environment)
       - [Local virtualenv development environment](#local-virtualenv-development-environment)
       - [Docker container development environment](#docker-container-development-environment)
+      - [Integration test development environment](#integration-test-development-environment)
   * [Running static code analysis locally](#running-static-code-analysis-locally)
   * [Pull requests guidelines](#pull-request-guidelines)
   * [Changing the Metadata Database](#changing-the-metadata-database)
@@ -168,12 +169,12 @@ you should do it after '--'
 For example, in order to just execute the "core" unit tests, run the following:
 
 ```bash
-run-tests tests.core:CoreTest -- -s --logging-level=DEBUG
+./run-tests.sh tests.core:CoreTest -- -s --logging-level=DEBUG
 ```
 or a single test method:
 
 ```bash
-run-tests tests.core:CoreTest.test_check_operators -- -s --logging-level=DEBUG
+./run-tests.sh tests.core:CoreTest.test_check_operators -- -s --logging-level=DEBUG
 ```
 
 ### Running tests directly from the IDE
@@ -267,26 +268,92 @@ docker commit "airflow-3.6" "local-aiflow:3.6"
 You can choose your own image label/tag to save the image as. Then you can enter back the environment with:
 
 ```bash
-docker run -t -i -v `pwd`:/airflow/ -w /airflow/ "local-airflow:3.6" bash
+docker run -t -i -v $(pwd):/airflow/ -w /airflow/ "local-airflow:3.6" bash
 ```
 
 ### Running tests
 Once you enter docker container you should be able to simply run
-`run-tests` at will. Note that if you want to pass extra parameters to nose
+`run-tests.sh` at will. Note that if you want to pass extra parameters to nose
 you should do it after '--'
 
 For example, in order to just execute the "core" unit tests, run the following:
 ```bash
-run-tests tests.core:CoreTest -- -s --logging-level=DEBUG
+./run-tests.sh tests.core:CoreTest -- -s --logging-level=DEBUG
 ```
 or a single test method:
 ```bash
-run-tests tests.core:CoreTest.test_check_operators -- -s --logging-level=DEBUG
+./run-tests.sh tests.core:CoreTest.test_check_operators -- -s --logging-level=DEBUG
 ```
 or another example:
 ```
-./run_unit_tests.sh tests.contrib.operators.test_dataproc_operator:DataprocClusterCreateOperatorTest.test_create_cluster_deletes_error_cluster  -s --logging-level=DEBUG
+./run_tests.sh tests.contrib.operators.test_dataproc_operator:DataprocClusterCreateOperatorTest.test_create_cluster_deletes_error_cluster  -s --logging-level=DEBUG
 ```
+
+Note that run_tests.sh script runs tests but performs database initialisation first.
+You can skip the database initialisation part with --skip-db-init (-s) flag.
+
+
+## Integration test development environment
+
+This is environment that is used during CI builds on Travis CI. We have scripts to reproduce the
+Travis environment and you can enter the environment and run it locally.
+
+The scripts used by Travis CI run also image builds which make the images contain all the sources. You can 
+see which scripts are used in [.travis.yml](.travis.yml) file.
+
+You can use the same scripts after building the local CI images (using 
+[scripts/ci/local_ci_build.sh](scripts/ci/local_ci_build.sh). Note that building image pulls 
+the cached version of image from Dockerhub based on master sources and rebuilds the layers that need 
+to be rebuilt - because they changed in local sources. This might take a bit of time when you run it for
+the first time and when you add new dependencies - but rebuilding the image should be an operation done
+quite rarely.
+
+For your convenience, there are also scripts that might be useful for local development 
+- where local host sources are mounted to within the docker container. 
+Those "local" scripts starts with "local_" prefix in [scripts/ci](scripts/ci) folder and 
+they run Docker-Compose environment with relevant backends (mysql/postgres) and additional services started. 
+
+*Running the whole suite of tests:*
+
+```bash
+PYTHON_VERSION=3.6 BACKEND=postgres ENV=docker ./scripts/ci/local_ci_run_airflow_testing.sh
+```
+
+PYTHON_VERSION might be one of 3.5/3.6
+BACKEND might be one of postgres/sqlite/mysql
+ENV might be one of docker/kubernetes
+
+In case of kubernetes tests, you have to also setup KUBERNETES_VERSION variable - currently
+supported is KUBERNETES_VERSION=v1.13.0.
+
+The kubernetes env might not work locally as easily as other tests because it requires your host
+to be setup properly. We are working on making the kubernetes tests more easily reproducible locally in
+the future.
+
+*Entering bash environment:*
+
+```bash
+PYTHON_VERSION=3.6 BACKEND=postgres ENV=docker ./scripts/ci/local_ci_enter_environment.sh
+```
+
+Once you are inside the environment you can run tests as described in [Running tests](#running-tests)
+
+*Stopping the environment*
+
+Docker-compose environment starts a number of docker containers. You can tear them down by running
+[/scripts/ci/local_ci_stop_environment.sh](scripts/ci/local_ci_stop_environment.sh)
+
+*Cleaning up cached Docker images/containers*
+
+Note that you might need to cleanup your Docker environment from time to time. The images are quite big
+(1.5GB for both images needed for static code analysis and CI tests). And if you often rebuild/update
+images you might end up with some unused image data. 
+ 
+Cleanup can be performed with `docker system prune` command. In case you have huge problems with disk space
+and want to clean-up all image data you can run `docker system prune --all`
+
+If on Mac OS you nd up with not enough disk space for docke you should increase disk space
+available for Docker. See [Docker for Mac - Space](https://docs.docker.com/docker-for-mac/space/) for details.
 
 Alternatively, you can also set up [Travis CI](https://travis-ci.org/) on your repo to automate this.
 It is free for open source projects.
@@ -294,7 +361,11 @@ It is free for open source projects.
 ### Running static code analysis locally
 
 We have a number of static code checks that are run in Travis CI but you can run them locally as well.
-All the scripts are available in [scripts/ci](scripts/ci/) folder.
+All the scripts are available in [scripts/ci](scripts/ci) folder.
+
+All these tests run in python3.6 environment. Note that the first time you run the checks it might take some
+time to rebuild the docker images required to run the tests, but all subsequent runs will be much faster -
+the build phase will just check if your code has changed and rebuild as needed.
 
 * [ci_check_license.sh](scripts/ci/ci_check_license.sh) - checks if all licences are present in source files.
   This script requires java and runs in host environment - this means that the check can behave differently

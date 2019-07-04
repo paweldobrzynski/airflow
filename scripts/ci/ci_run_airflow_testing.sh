@@ -34,6 +34,15 @@ export DOCKERHUB_REPO=${DOCKERHUB_REPO:="airflow"}
 export AIRFLOW_CI_VERBOSE="true"
 export BACKEND=${BACKEND:="sqlite"}
 export ENV=${ENV:="docker"}
+export MOUNT_LOCAL_SOURCES=${MOUNT_LOCAL_SOURCES:="false"}
+export WEBSERVER_HOST_PORT=${WEBSERVER_HOST_PORT:="8080"}
+
+if [[ ${MOUNT_LOCAL_SOURCES} == "true" ]]; then
+    DOCKER_COMPOSE_LOCAL=("-f" "${MY_DIR}/docker-compose-local.yml")
+else
+    DOCKER_COMPOSE_LOCAL=()
+fi
+
 # Branch name to download image from
 # Can be overridden by SOURCE_BRANCH
 # Define an empty BRANCH_NAME_FIRST
@@ -50,6 +59,7 @@ if [[ "${ENV}" == "docker" ]]; then
   docker-compose --log-level INFO \
       -f "${MY_DIR}/docker-compose.yml" \
       -f "${MY_DIR}/docker-compose-${BACKEND}.yml" \
+      "${DOCKER_COMPOSE_LOCAL[@]}" \
         run airflow-testing /opt/airflow/scripts/ci/in_container/entrypoint_ci.sh;
 else
   "${MY_DIR}/kubernetes/minikube/stop_minikube.sh" && "${MY_DIR}/kubernetes/setup_kubernetes.sh" && \
@@ -60,6 +70,7 @@ else
       -f "${MY_DIR}/docker-compose.yml" \
       -f "${MY_DIR}/docker-compose-${BACKEND}.yml" \
       -f "${MY_DIR}/docker-compose-kubernetes.yml" \
+      "${DOCKER_COMPOSE_LOCAL[@]}" \
          run --no-deps airflow-testing /opt/airflow/scripts/ci/in_container/entrypoint_ci.sh;
   "${MY_DIR}/kubernetes/minikube/stop_minikube.sh"
 
@@ -71,8 +82,8 @@ else
       -f "${MY_DIR}/docker-compose.yml" \
       -f "${MY_DIR}/docker-compose-${BACKEND}.yml" \
       -f "${MY_DIR}/docker-compose-kubernetes.yml" \
+      "${DOCKER_COMPOSE_LOCAL[@]}" \
          run --no-deps airflow-testing /opt/airflow/scripts/ci/in_container/entrypoint_ci.sh;
   "${MY_DIR}/kubernetes/minikube/stop_minikube.sh"
-
 fi
 set -u
