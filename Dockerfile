@@ -286,28 +286,31 @@ ENV AIRFLOW_BRANCH=${AIRFLOW_BRANCH}
 
 ENV AIRFLOW_GITHUB_DOWNLOAD=https://raw.githubusercontent.com/${AIRFLOW_REPO}/${AIRFLOW_BRANCH}
 
-# We perform fresh dependency install at the beginning of each month from the scratch
-# This way every month we re-test if fresh installation from the scratch actually works
-# As opposed to incremental installations which does not upgrade already installed packages unless it
-# is required by setup.py constraints.
-ARG BUILD_MONTH
-
-# We get Airflow dependencies (no Airflow sources) from the master version of Airflow in order to avoid full
-# pip install layer cache invalidation when setup.py changes. This can be reinstalled from the
-# latest master by increasing PIP_DEPENDENCIES_EPOCH_NUMBER.
-RUN mkdir -pv ${AIRFLOW_SOURCES}/airflow/bin \
- && curl -L ${AIRFLOW_GITHUB_DOWNLOAD}/setup.py >${AIRFLOW_SOURCES}/setup.py \
- && curl -L ${AIRFLOW_GITHUB_DOWNLOAD}/setup.cfg >${AIRFLOW_SOURCES}/setup.cfg \
- && curl -L ${AIRFLOW_GITHUB_DOWNLOAD}/airflow/version.py >${AIRFLOW_SOURCES}/airflow/version.py \
- && curl -L ${AIRFLOW_GITHUB_DOWNLOAD}/airflow/__init__.py >${AIRFLOW_SOURCES}/airflow/__init__.py \
- && curl -L ${AIRFLOW_GITHUB_DOWNLOAD}/airflow/bin/airflow >${AIRFLOW_SOURCES}/airflow/bin/airflow
-
 # Airflow Extras installed
 ARG AIRFLOW_EXTRAS="all"
 ENV AIRFLOW_EXTRAS=${AIRFLOW_EXTRAS}
+
 RUN echo "Installing with extras: ${AIRFLOW_EXTRAS}."
 
-RUN pip install --no-use-pep517 -e ".[${AIRFLOW_EXTRAS}]"
+ARG AIRFLOW_CONTAINER_CI_OPTIMISED_BUILD="false"
+ENV AIRFLOW_CONTAINER_CI_OPTIMISED_BUILD=${AIRFLOW_CONTAINER_CI_OPTIMISED_BUILD}
+
+# By changing the CI build epoch we can force reinstalling Arflow from the current master -
+# in case of CI optimized builds (next step). Our build scripts will change the EPOCH every month normally
+# But it can also be overwritten manually by setting the AIRFLOW_CI_BUILD_EPOCH environment variable.
+ARG AIRFLOW_CI_BUILD_EPOCH=""
+ENV AIRFLOW_CI_BUILD_EPOCH=${AIRFLOW_CI_BUILD_EPOCH}
+
+# In case of CI-optimised builds we want to pre-install master version of airflow dependencies so that
+# We do not have to always reinstall it from the scratch.
+# This can be reinstalled from latest master by increasing PIP_DEPENDENCIES_EPOCH_NUMBER.
+# And is automatically reinstalled from the scratch every month
+RUN \
+    if [[ "${AIRFLOW_CONTAINER_CI_OPTIMISED_BUILD}" == "true" ]]; then \
+        pip install --no-use-pep517 \
+        "https://github.com/apache/airflow/archive/master.tar.gz#egg=apache-airflow[${AIRFLOW_EXTRAS}]" \
+        && pip uninstall --yes apache-airflow; \
+    fi
 
 # Note! We are copying everything with airflow:airflow user:group even if we use root to run the scripts
 # This is fine as root user will be able to use those dirs anyway.
@@ -324,7 +327,10 @@ COPY --chown=airflow:airflow airflow/bin/airflow ${AIRFLOW_SOURCES}/airflow/bin/
 
 # The goal of this line is to install the dependencies from the most current setup.py from sources
 # This will be usually incremental small set of packages so it will be very fast
-RUN pip install --no-use-pep517 -e ".[${AIRFLOW_EXTRAS}]"
+RUN \
+    if [[ "${AIRFLOW_CONTAINER_CI_OPTIMISED_BUILD}" == "true" ]]; then \
+        pip install --no-use-pep517 -e ".[${AIRFLOW_EXTRAS}]"; \
+    fi
 
 COPY --chown=airflow:airflow airflow/www/package.json ${AIRFLOW_SOURCES}/airflow/www/package.json
 COPY --chown=airflow:airflow airflow/www/package-lock.json ${AIRFLOW_SOURCES}/airflow/www/package-lock.json
@@ -360,6 +366,9 @@ RUN apt-get update \
 COPY --chown=airflow:airflow . ${AIRFLOW_SOURCES}/
 
 WORKDIR ${AIRFLOW_SOURCES}
+
+# Finally install the requirements from the latest sources
+RUN pip install --no-use-pep517 -e ".[${AIRFLOW_EXTRAS}]"
 
 # Always add-get update/upgrade here to get latest dependencies before
 # we redo pip install
