@@ -89,17 +89,6 @@ export PYTHONPATH=${PYTHONPATH:-${AIRFLOW_SOURCES}/tests/test_utils}
 export AIRFLOW__CORE__UNIT_TEST_MODE=True
 export HADOOP_DISTRO
 
-echo "#######################################################################"
-echo
-echo "  You can drop into ipdb debugger by adding this line to your code:"
-echo
-echo "         import ipdb; ipdb.set_trace()"
-echo
-echo "  Then run your tests with 'run-tests <TEST> --nocapture' "
-echo
-echo "#######################################################################"
-
-
 # Fix codecov build path
 # TODO: Check this - this should be made travis-independent
 if [[ ! -h /home/travis/build/apache/airflow ]]; then
